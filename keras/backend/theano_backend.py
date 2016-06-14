@@ -21,6 +21,7 @@ py_all = all
 # INTERNAL UTILS
 theano.config.floatX = _FLOATX
 _LEARNING_PHASE = T.scalar(dtype='uint8', name='keras_learning_phase')  # 0 = test, 1 = train
+_LEARNING_PHASE.tag.test_value = np.array(0).astype('uint8')
 
 
 def learning_phase():
@@ -99,8 +100,10 @@ def placeholder(shape=None, ndim=None, dtype=None, sparse=False, name=None):
         raise ValueError('Specify either a shape or ndim value.')
     if shape is not None:
         ndim = len(shape)
+        test_shape = [el if el is not None else 1 for el in shape]
     else:
         shape = tuple([None for _ in range(ndim)])
+        test_shape = [1] * ndim
 
     broadcast = (False,) * ndim
     if sparse:
@@ -110,6 +113,7 @@ def placeholder(shape=None, ndim=None, dtype=None, sparse=False, name=None):
         x = T.TensorType(dtype, broadcast)(name)
     x._keras_shape = shape
     x._uses_learning_phase = False
+    x.tag.test_value = np.random.random(test_shape).astype(dtype)
     return x
 
 
