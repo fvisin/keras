@@ -118,6 +118,10 @@ class BatchNormalization(Layer):
             x_normed, mean, std = K.normalize_batch_in_training(
                 x, self.gamma, self.beta, reduction_axes,
                 epsilon=self.epsilon)
+            try:
+                x_normed.tag.test_value = x.tag.test_value
+            except AttributeError:
+                pass
 
             if self.mode == 0:
                 self.add_update([K.moving_average_update(self.running_mean, mean, self.momentum),
@@ -148,6 +152,10 @@ class BatchNormalization(Layer):
             std = K.sqrt(K.var(x, axis=-1, keepdims=True) + self.epsilon)
             x_normed = (x - m) / (std + self.epsilon)
             x_normed = self.gamma * x_normed + self.beta
+        try:
+            x_normed.tag.test_value = x.tag.test_value
+        except AttributeError:
+            pass
         return x_normed
 
     def get_config(self):
