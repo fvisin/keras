@@ -16,6 +16,7 @@ from .common import _FLOATX, _EPSILON, _IMAGE_DIM_ORDERING
 # INTERNAL UTILS
 theano.config.floatX = _FLOATX
 _LEARNING_PHASE = T.scalar(dtype='uint8', name='keras_learning_phase')  # 0 = test, 1 = train
+_LEARNING_PHASE.tag.test_value = 1
 
 
 def learning_phase():

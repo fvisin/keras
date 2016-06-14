@@ -99,13 +99,13 @@ def standardize_input_data(data, names, shapes=None,
                 if not j and not check_batch_dim:
                     # skip the first axis
                     continue
-                if ref_dim:
-                    if ref_dim != dim:
-                        raise Exception('Error when checking ' + exception_prefix +
-                                        ': expected ' + names[i] +
-                                        ' to have shape ' + str(shapes[i]) +
-                                        ' but got array with shape ' +
-                                        str(array.shape))
+                # if ref_dim:
+                #     if ref_dim != dim:
+                #         raise Exception('Error when checking ' + exception_prefix +
+                #                         ': expected ' + names[i] +
+                #                         ' to have shape ' + str(shapes[i]) +
+                #                         ' but got array with shape ' +
+                #                         str(array.shape))
     return arrays
 
 
@@ -567,9 +567,11 @@ class Model(Container):
                                     'dictionary')
                 if sample_weight_mode.get(name) == 'temporal':
                     weight = K.placeholder(ndim=2, name=name + '_sample_weights')
+                    weight.tag.test_value = [[1.], [1.]]
                     sample_weight_modes.append('temporal')
                 else:
                     weight = K.placeholder(ndim=1, name=name + '_sample_weights')
+                    weight.tag.test_value = [1.]
                     sample_weight_modes.append(None)
                 sample_weights.append(weight)
         elif type(sample_weight_mode) is list:
@@ -585,18 +587,24 @@ class Model(Container):
                 if mode == 'temporal':
                     weight = K.placeholder(ndim=2, name=name + '_sample_weights')
                     sample_weight_modes.append('temporal')
+                    weight.tag.test_value = [[1.], [1.]]
                 else:
                     weight = K.placeholder(ndim=1, name=name + '_sample_weights')
+                    weight.tag.test_value = [1.]
                     sample_weight_modes.append(None)
                 sample_weights.append(weight)
         else:
             if sample_weight_mode == 'temporal':
                 sample_weights = [K.placeholder(ndim=2, name=name + '_sample_weights')
                                   for name in self.output_names]
+                for el in sample_weights:
+                    el.tag.test_value = [[1.], [1.]]
                 sample_weight_modes = ['temporal' for name in self.output_names]
             else:
                 sample_weights = [K.placeholder(ndim=1, name=name + '_sample_weights')
                                   for name in self.output_names]
+                for el in sample_weights:
+                    el.tag.test_value = [1.]
                 sample_weight_modes = [None for name in self.output_names]
         self.sample_weight_modes = sample_weight_modes
 
