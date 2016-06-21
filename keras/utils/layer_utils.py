@@ -48,7 +48,8 @@ def print_summary(layers, relevant_nodes=None, line_length=100, positions=[.33, 
         for i in range(len(fields)):
             line += str(fields[i])
             line = line[:positions[i]]
-            line += ' ' * (positions[i] - len(line))
+            line += ' '
+            line += ' ' * (positions[i] - 1 - len(line))
         print(line)
 
     print('_' * line_length)
