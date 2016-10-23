@@ -492,10 +492,13 @@ def _old_normalize_batch_in_training(x, gamma, beta,
     """Computes mean and std for batch then apply batch_normalization on batch.
     """
     dev = theano.config.device
-    use_cudnn = ndim(x) < 5 and reduction_axes == [0, 2, 3] and (dev.startswith('cuda') or dev.startswith('gpu'))
+    use_cudnn = ((dev.startswith('cuda') or dev.startswith('gpu')) and
+                 ndim(x) in (4, 5) and
+                 reduction_axes == [0] + range(2, ndim(x)))
     if use_cudnn:
-        broadcast_beta = beta.dimshuffle('x', 0, 'x', 'x')
-        broadcast_gamma = gamma.dimshuffle('x', 0, 'x', 'x')
+        broadcast_pattern = ['x', 0] + ['x'] * (ndim(x) - 2)
+        broadcast_beta = beta.dimshuffle(*broadcast_pattern)
+        broadcast_gamma = gamma.dimshuffle(*broadcast_pattern)
         try:
             normed, mean, stdinv = theano.sandbox.cuda.dnn.dnn_batch_normalization_train(
                 x, broadcast_gamma, broadcast_beta, 'spatial', epsilon)
@@ -545,7 +548,7 @@ def _old_batch_normalization(x, mean, var, beta, gamma, epsilon=1e-3):
 
     ndim = x.ndim
     dev = theano.config.device
-    use_cudnn = ndim < 5 and (dev.startswith('cuda') or dev.startswith('gpu'))
+    use_cudnn = ndim in (4, 5) and (dev.startswith('cuda') or dev.startswith('gpu'))
     if use_cudnn:
         try:
             axis = mean.broadcastable.index(False)
