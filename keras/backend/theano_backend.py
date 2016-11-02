@@ -492,13 +492,20 @@ def _old_normalize_batch_in_training(x, gamma, beta,
     """Computes mean and std for batch then apply batch_normalization on batch.
     """
     dev = theano.config.device
+    BN_axis = [el for el in range(ndim(x)) if el not in reduction_axes]
     use_cudnn = ((dev.startswith('cuda') or dev.startswith('gpu')) and
-                 ndim(x) in (4, 5) and
-                 reduction_axes == [0] + range(2, ndim(x)))
+                 ndim(x) in (4, 5) and len(BN_axis) == 1)
+
     if use_cudnn:
         broadcast_pattern = ['x', 0] + ['x'] * (ndim(x) - 2)
         broadcast_beta = beta.dimshuffle(*broadcast_pattern)
         broadcast_gamma = gamma.dimshuffle(*broadcast_pattern)
+
+        # Dimshuffle to use BN on axis 1
+        if reduction_axes != [0] + range(2, ndim(x)):
+            shuffle_pattern = [reduction_axes[0]] + BN_axis + reduction_axes[1:]
+            x = x.dimshuffle(*shuffle_pattern)
+
         try:
             if dev.startswith('gpu'):
                 # use Theano's old gpu backend
@@ -513,6 +520,15 @@ def _old_normalize_batch_in_training(x, gamma, beta,
             stdinv = theano.tensor.as_tensor_variable(stdinv)
 
             var = T.inv(stdinv ** 2)
+
+            # Revert dimshuffle
+            if reduction_axes != [0] + range(2, ndim(x)):
+                unshuffle_pattern = [shuffle_pattern.index(idx) for idx in
+                                     range(ndim(x))]
+                normed = normed.dimshuffle(*unshuffle_pattern)
+                mean = mean.dimshuffle(*unshuffle_pattern)
+                var = var.dimshuffle(*unshuffle_pattern)
+
             return normed, T.flatten(mean), T.flatten(var)
         except AttributeError:
             pass
