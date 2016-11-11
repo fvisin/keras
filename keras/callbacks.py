@@ -445,6 +445,7 @@ class EarlyStopping(Callback):
         if current is None:
             warnings.warn('Early stopping requires %s available!' %
                           (self.monitor), RuntimeWarning)
+            return
 
         if self.monitor_op(current - self.min_delta, self.best):
             self.best = current
