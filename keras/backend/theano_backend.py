@@ -1764,13 +1764,13 @@ def pool2d(x, pool_size, strides=(1, 1), border_mode='valid',
             pool_out = pool.pool_2d(x, ws=pool_size, stride=strides,
                                     ignore_border=True,
                                     pad=padding,
-                                    mode='average_exc_pad')
+                                    mode='average_inc_pad')
         except TypeError:
             # old interface
             pool_out = pool.pool_2d(x, ds=pool_size, st=strides,
                                     ignore_border=True,
                                     padding=padding,
-                                    mode='average_exc_pad')
+                                    mode='average_inc_pad')
     else:
         raise ValueError('Invalid pooling mode:', pool_mode)
 
