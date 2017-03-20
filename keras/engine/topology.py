@@ -2817,6 +2817,13 @@ class Container(Layer):
             for layer in flattened_layers:
                 if layer.name:
                     index.setdefault(layer.name, []).append(layer)
+                else:
+                    print('layer {} has no name. Its weights will not be '
+                          'reloaded'.format(layer))
+            missing = [l.name if l.name else l for l in flattened_layers
+                       if l.name not in layer_names]
+            if missing:
+                print('Weights missing for {}'.format(missing))
 
             # We batch weight value assignments in a single backend call
             # which provides a speedup in TensorFlow.
@@ -2826,7 +2833,11 @@ class Container(Layer):
                 weight_names = [n.decode('utf8') for n in g.attrs['weight_names']]
                 weight_values = [g[weight_name] for weight_name in weight_names]
 
-                for layer in index.get(name, []):
+                for layer in index.get(name, [None]):
+                    if not layer:
+                        print('The weight file contains a layer {} that is '
+                              'not in the current model'.format(name))
+                        continue
                     symbolic_weights = layer.weights
                     if len(weight_values) != len(symbolic_weights):
                         raise ValueError('Layer #' + str(k) +
@@ -2836,10 +2847,29 @@ class Container(Layer):
                                          ' weight(s), but the saved weights' +
                                          ' have ' + str(len(weight_values)) +
                                          ' element(s).')
-                    # Set values.
-                    for i in range(len(weight_values)):
-                        weight_value_tuples.append((symbolic_weights[i],
-                                                    weight_values[i]))
+
+                    sy_weight_names = sorted([el.name.decode('utf8')
+                                           for el in symbolic_weights])
+                    if sorted(weight_names) != sorted(sy_weight_names):
+                        raise RuntimeError('The names of the weights in '
+                                           'the file ({}) do not match '
+                                           'those in the model ({}) for '
+                                           'layer #{} named {}!'.format(
+                                               weight_names,
+                                               sy_weight_names, k,
+                                               layer.name))
+
+                    if not None in weight_names and not '' in weight_names:
+                        # Set values by name
+                        for sw, fw in zip(symbolic_weights, weight_values):
+                            weight_value_tuples.append((sw, g[sw.name]))
+                    else:
+                        print('Setting values by index rather than name')
+                        # Set values by index
+                        for i in range(len(weight_values)):
+                            weight_value_tuples.append((symbolic_weights[i],
+                                                        weight_values[i]))
+
             K.batch_set_value(weight_value_tuples)
 
     def _updated_config(self):
